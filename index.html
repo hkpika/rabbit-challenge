@@ -1,18 +1,21 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>兔子接蘑菇遊戲 - 雲端排行榜版</title>
 <style>
+    /* Reset and layout */
     body { margin: 0; padding: 0; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
     #gameContainer { position: relative; width: 100%; max-width: 800px; height: 100%; max-height: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); background-color: #a8e6cf; overflow: hidden; }
     canvas { display: block; width: 100%; height: 100%; object-fit: cover; touch-action: none; }
+    /* UI Elements */
     #ui { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; font-size: clamp(16px, 4vw, 28px); font-weight: bold; color: #2c3e50; pointer-events: none; text-shadow: 2px 2px 4px rgba(255,255,255,0.7); z-index: 2; }
     #powerUpMsg { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); font-size: clamp(18px, 5vw, 24px); font-weight: bold; color: #ffeb3b; text-shadow: 0 0 10px #ff9800, 2px 2px 4px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2; }
     #controls { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 40px; z-index: 5; pointer-events: none; }
     .control-btn { width: 70px; height: 70px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.8); background: rgba(0, 0, 0, 0.3); color: white; font-size: 30px; display: flex; justify-content: center; align-items: center; pointer-events: auto; cursor: pointer; user-select: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: background 0.1s; }
     .control-btn:active { background: rgba(0, 0, 0, 0.6); transform: scale(0.95); }
+    /* Overlay */
     #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; z-index: 10; }
     #overlay h1 { font-size: clamp(30px, 7vw, 50px); margin-bottom: 5px; color: #ffeb3b; }
     #finalScore { font-size: clamp(20px, 5vw, 32px); margin-bottom: 10px; }
@@ -20,18 +23,39 @@
     #playerName::placeholder { color: #888; text-transform: none; font-weight: normal; }
     #difficultyUI { margin-bottom: 15px; font-size: clamp(14px, 3.5vw, 18px); background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; }
     #difficultyUI label { margin: 0 5px; cursor: pointer; display: inline-block; padding: 5px; }
+    /* Leaderboard */
     #leaderboard { background: rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 10px; margin-bottom: 15px; text-align: left; min-width: 280px; }
     #leaderboard h3 { margin: 0 0 10px 0; color: #ffeb3b; text-align: center; font-size: clamp(16px, 4vw, 22px);}
     #leaderboard ol { margin: 0; padding-left: 20px; font-size: clamp(14px, 4vw, 18px); }
     .diff-badge { font-size: 12px; background: #ff5722; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
     .name-badge { font-weight: bold; color: #a8e6cf; margin-right: 10px; }
+    /* Buttons */
     button.start { padding: 12px 30px; font-size: clamp(18px, 5vw, 24px); cursor: pointer; border: none; border-radius: 50px; background-color: #ff8b94; color: white; font-weight: bold; box-shadow: 0 5px 15px rgba(255,139,148,0.4); transition: 0.2s; }
     button.start:hover { background-color: #ff7480; transform: scale(1.05); }
     .hidden { display: none !important; }
-    .new-record-effect { animation: flashBg 0.5s infinite alternate; }
-    @keyframes flashBg { 0% { background: rgba(0,0,0,0.8); } 100% { background: rgba(255, 215, 0, 0.4); } }
-    #newRecordMsg { color: #ff5722; font-size: clamp(24px, 6vw, 40px); font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 10px white; display: none; animation: scaleUp 0.5s infinite alternate; }
-    @keyframes scaleUp { from { transform: scale(1); } to { transform: scale(1.1); } }
+    
+    /* ✨✨✨ 新・低調奢華特效 (只針對文字) ✨✨✨ */
+    #newRecordMsg {
+        font-size: clamp(24px, 6vw, 40px);
+        font-weight: bold;
+        margin-bottom: 10px;
+        display: none;
+        /* 使用柔和的呼吸燈動畫，時間設為 1秒，來回交替，線條平滑 */
+        animation: subtlePulse 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes subtlePulse {
+        0% {
+            color: #ffeb3b; /* 金黃色 */
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.8), 0 0 20px rgba(255, 235, 59, 0.5);
+            transform: scale(1); /* 原始大小 */
+        }
+        100% {
+            color: #ff5722; /* 橙紅色 */
+            text-shadow: 0 0 20px rgba(255, 87, 34, 1), 0 0 30px rgba(255, 87, 34, 0.7);
+            transform: scale(1.05); /* 輕微放大 5% */
+        }
+    }
 </style>
 </head>
 <body>
@@ -69,15 +93,18 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 🔴 請將呢段換返做你自己嘅 Firebase Config 🔴
+    // 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴
+    // 請將呢段換返做你自己嘅 Firebase Config 🔴
+    // 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴
     const firebaseConfig = {
+
       apiKey: "AIzaSyBRLSRptfE8FBQc3MDPiFsaP2v_LFFobpg",
       authDomain: "rabbitgamecloud.firebaseapp.com",
       projectId: "rabbitgamecloud",
       storageBucket: "rabbitgamecloud.firebasestorage.app",
       messagingSenderId: "1080876873139",
       appId: "1:1080876873139:web:c58123c6011818ff9cc7c6"
-};
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -136,8 +163,20 @@
     async function saveScoreToCloud(newScore, diffName, pName) {
         if (newScore <= 0) return false; 
         try {
-            await addDoc(collection(db, "leaderboard"), { name: pName, score: newScore, difficulty: diffName, timestamp: new Date() });
-            return true;
+            // 檢查是否足以進入前 5 名
+            const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5));
+            const querySnapshot = await getDocs(q);
+            let lowestScoreInTop5 = 0;
+            if (!querySnapshot.empty && querySnapshot.size >= 5) {
+                lowestScoreInTop5 = querySnapshot.docs[querySnapshot.size - 1].data().score;
+            }
+            
+            // 如果排行榜未滿，或者新分數高過第5名，就儲存
+            if (querySnapshot.size < 5 || newScore > lowestScoreInTop5) {
+                await addDoc(collection(db, "leaderboard"), { name: pName, score: newScore, difficulty: diffName, timestamp: new Date() });
+                return true; // 代表成功上榜
+            }
+            return false; // 無上榜
         } catch (error) { console.error("Error saving score:", error); return false; }
     }
 
@@ -150,12 +189,11 @@
     function spawnObject() {
         if (!isPlaying) return;
         
-        // 根據難度決定道具出現機率
         let powerUpChance = 0.01; 
-        if (currentDiff === 'easy') powerUpChance = 0.005; // 0.5%
-        else if (currentDiff === 'normal') powerUpChance = 0.01; // 1%
-        else if (currentDiff === 'hard') powerUpChance = 0.015; // 1.5%
-        else if (currentDiff === 'very_hard') powerUpChance = 0.02; // 2%
+        if (currentDiff === 'easy') powerUpChance = 0.005; 
+        else if (currentDiff === 'normal') powerUpChance = 0.01; 
+        else if (currentDiff === 'hard') powerUpChance = 0.015; 
+        else if (currentDiff === 'very_hard') powerUpChance = 0.02; 
 
         if (Math.random() < powerUpChance) {
             if (currentDiff === 'hard' || currentDiff === 'very_hard') {
@@ -182,12 +220,10 @@
 
     function activateStar() { playPowerUpSound(); isInvincible = true; powerUpMsg.innerText = "⭐⭐ 無敵狀態 ⭐⭐"; powerUpMsg.style.opacity = "1"; if (invincibleTimer) clearTimeout(invincibleTimer); invincibleTimer = setTimeout(() => { isInvincible = false; powerUpMsg.style.opacity = "0"; }, 5000); }
     
-    // 根據難度決定加幾多秒
     function activateClock() { 
         playPowerUpSound(); 
-        let addedTime = 2; // 呆呆、乖乖、醒目預設加 2 秒
-        if (currentDiff === 'very_hard') addedTime = 1; // 高高免只加 1 秒
-
+        let addedTime = 2; 
+        if (currentDiff === 'very_hard') addedTime = 1; 
         timeLeft += addedTime; 
         timeDisplay.innerText = `時間: ${timeLeft}`; 
         powerUpMsg.innerText = `⏰ 時間 +${addedTime} 秒 ⏰`; 
@@ -227,7 +263,7 @@
         score = 0; timeLeft = 20; fallingObjects = []; player.x = canvas.width / 2; isPlaying = true; isInvincible = false; powerUpMsg.style.opacity = "0";
         if(invincibleTimer) clearTimeout(invincibleTimer);
         scoreDisplay.innerText = `分數: ${score}`; timeDisplay.innerText = `時間: ${timeLeft}`;
-        overlay.classList.add('hidden'); overlay.classList.remove('new-record-effect'); newRecordMsg.style.display = 'none';
+        overlay.classList.add('hidden'); newRecordMsg.style.display = 'none';
 
         if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume();
         update();
@@ -239,7 +275,8 @@
         
         startBtn.innerText = "上傳分數中..."; startBtn.disabled = true;
 
-        const isSaved = await saveScoreToCloud(score, diffNames[currentDiff], currentPlayerName);
+        // 修改了 saveScoreToCloud 的邏輯，現在它會返回 true (成功上榜) 或 false (未能上榜)
+        const isOnLeaderboard = await saveScoreToCloud(score, diffNames[currentDiff], currentPlayerName);
         await renderLeaderboard();
 
         gameOverTitle.innerText = "CONGRATULATIONS!";
@@ -249,7 +286,10 @@
         document.getElementById('difficultyUI').classList.remove('hidden');
         powerUpMsg.style.opacity = "0"; 
         
-        if (isSaved && score > 0) { overlay.classList.add('new-record-effect'); newRecordMsg.style.display = 'block'; }
+        // 只有成功打入前 5 名，先會顯示「🎉 上榜啦！ 🎉」的柔和特效
+        if (isOnLeaderboard && score > 0) { 
+            newRecordMsg.style.display = 'block'; 
+        }
         keys.ArrowLeft = false; keys.ArrowRight = false; overlay.classList.remove('hidden');
     }
 
