@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>兔子接蘑菇遊戲 - 雲端排行榜版</title>
 <style>
-    /* （CSS 樣式同之前一樣，為咗節省空間，請保留你原本 head 標籤入面嘅所有 CSS） */
     body { margin: 0; padding: 0; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
     #gameContainer { position: relative; width: 100%; max-width: 800px; height: 100%; max-height: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); background-color: #a8e6cf; overflow: hidden; }
     canvas { display: block; width: 100%; height: 100%; object-fit: cover; touch-action: none; }
@@ -67,13 +66,10 @@
 </div>
 
 <script type="module">
-    // 1. 引入 Firebase 核心套件
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴
-    // 請將下面呢段 firebaseConfig 替換成你頭先喺 Firebase 申請到嗰段！
-    // 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴 🔴
+    // 🔴 請將呢段換返做你自己嘅 Firebase Config 🔴
     const firebaseConfig = {
       apiKey: "AIzaSyBRLSRptfE8FBQc3MDPiFsaP2v_LFFobpg",
       authDomain: "rabbitgamecloud.firebaseapp.com",
@@ -81,14 +77,11 @@
       storageBucket: "rabbitgamecloud.firebasestorage.app",
       messagingSenderId: "1080876873139",
       appId: "1:1080876873139:web:c58123c6011818ff9cc7c6"
-    };
+};
 
-
-    // 初始化 Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // DOM Elements (同之前一樣)
     const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
     const timeDisplay = document.getElementById('timeDisplay'); const scoreDisplay = document.getElementById('scoreDisplay');
     const powerUpMsg = document.getElementById('powerUpMsg'); const overlay = document.getElementById('overlay');
@@ -120,18 +113,12 @@
     function playCoinSound() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1); gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); osc.start(); osc.stop(audioCtx.currentTime + 0.1); }
     function playPowerUpSound() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1); osc.frequency.linearRampToValueAtTime(1760, audioCtx.currentTime + 0.2); gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3); osc.start(); osc.stop(audioCtx.currentTime + 0.3); }
 
-    // 🌟 從 Firebase 讀取排行榜
     async function renderLeaderboard() {
         try {
             const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5));
             const querySnapshot = await getDocs(q);
             scoreList.innerHTML = '';
-            
-            if (querySnapshot.empty) {
-                scoreList.innerHTML = '<li>暫無紀錄，快啲做第一！</li>';
-                return;
-            }
-            
+            if (querySnapshot.empty) { scoreList.innerHTML = '<li>暫無紀錄，快啲做第一！</li>'; return; }
             querySnapshot.forEach((doc) => {
                 const s = doc.data();
                 const li = document.createElement('li');
@@ -144,25 +131,14 @@
         }
     }
     
-    // 初始化時先載入一次
     renderLeaderboard();
 
-    // 🌟 寫入分數到 Firebase
     async function saveScoreToCloud(newScore, diffName, pName) {
-        if (newScore <= 0) return false; // 0分或負分唔上傳啦
-        
+        if (newScore <= 0) return false; 
         try {
-            await addDoc(collection(db, "leaderboard"), {
-                name: pName,
-                score: newScore,
-                difficulty: diffName,
-                timestamp: new Date()
-            });
+            await addDoc(collection(db, "leaderboard"), { name: pName, score: newScore, difficulty: diffName, timestamp: new Date() });
             return true;
-        } catch (error) {
-            console.error("Error saving score:", error);
-            return false;
-        }
+        } catch (error) { console.error("Error saving score:", error); return false; }
     }
 
     const itemTypes = [
@@ -173,13 +149,22 @@
 
     function spawnObject() {
         if (!isPlaying) return;
-        if (Math.random() < 0.03) {
+        
+        // 根據難度決定道具出現機率
+        let powerUpChance = 0.01; 
+        if (currentDiff === 'easy') powerUpChance = 0.005; // 0.5%
+        else if (currentDiff === 'normal') powerUpChance = 0.01; // 1%
+        else if (currentDiff === 'hard') powerUpChance = 0.015; // 1.5%
+        else if (currentDiff === 'very_hard') powerUpChance = 0.02; // 2%
+
+        if (Math.random() < powerUpChance) {
             if (currentDiff === 'hard' || currentDiff === 'very_hard') {
                 if (Math.random() < 0.5) fallingObjects.push({ emoji: '⭐', type: 'star', x: Math.random() * (canvas.width - 50) + 25, y: -50, size: 50, points: 0, speed: 5 * speedMultiplier });
                 else fallingObjects.push({ emoji: '⏰', type: 'clock', x: Math.random() * (canvas.width - 50) + 25, y: -50, size: 50, points: 0, speed: 5 * speedMultiplier });
             } else { fallingObjects.push({ emoji: '⏰', type: 'clock', x: Math.random() * (canvas.width - 50) + 25, y: -50, size: 50, points: 0, speed: 5 * speedMultiplier }); }
             return; 
         }
+
         let config = null, isCorn = false;
         if (currentDiff === 'very_hard') {
             if (timeLeft <= 8 && Math.random() < 0.2) { config = { emoji: '🌽', type: 'large_corn', size: 70, points: -10, baseSpeed: 5 }; isCorn = true; } 
@@ -196,7 +181,20 @@
     }
 
     function activateStar() { playPowerUpSound(); isInvincible = true; powerUpMsg.innerText = "⭐⭐ 無敵狀態 ⭐⭐"; powerUpMsg.style.opacity = "1"; if (invincibleTimer) clearTimeout(invincibleTimer); invincibleTimer = setTimeout(() => { isInvincible = false; powerUpMsg.style.opacity = "0"; }, 5000); }
-    function activateClock() { playPowerUpSound(); timeLeft += 5; timeDisplay.innerText = `時間: ${timeLeft}`; powerUpMsg.innerText = "⏰ 時間 +5 秒 ⏰"; powerUpMsg.style.opacity = "1"; setTimeout(() => { if(!isInvincible) powerUpMsg.style.opacity = "0"; }, 1500); }
+    
+    // 根據難度決定加幾多秒
+    function activateClock() { 
+        playPowerUpSound(); 
+        let addedTime = 2; // 呆呆、乖乖、醒目預設加 2 秒
+        if (currentDiff === 'very_hard') addedTime = 1; // 高高免只加 1 秒
+
+        timeLeft += addedTime; 
+        timeDisplay.innerText = `時間: ${timeLeft}`; 
+        powerUpMsg.innerText = `⏰ 時間 +${addedTime} 秒 ⏰`; 
+        powerUpMsg.style.opacity = "1"; 
+        setTimeout(() => { if(!isInvincible) powerUpMsg.style.opacity = "0"; }, 1500); 
+    }
+    
     function drawEmoji(emoji, x, y, size) { ctx.font = `${size}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(emoji, x, y); }
 
     function update() {
@@ -236,24 +234,18 @@
         timerId = setInterval(() => { timeLeft--; timeDisplay.innerText = `時間: ${timeLeft}`; if (timeLeft <= 0) endGame(); }, 1000);
     }
 
-    // 🌟 遊戲結束時上傳分數
     async function endGame() {
         isPlaying = false; cancelAnimationFrame(animationId); clearInterval(timerId);
         
-        startBtn.innerText = "上傳分數中...";
-        startBtn.disabled = true;
+        startBtn.innerText = "上傳分數中..."; startBtn.disabled = true;
 
-        // 將分數推上雲端
         const isSaved = await saveScoreToCloud(score, diffNames[currentDiff], currentPlayerName);
-        
-        // 重新讀取最新嘅雲端排行榜
         await renderLeaderboard();
 
         gameOverTitle.innerText = "CONGRATULATIONS!";
         finalScore.innerText = `總分：${score} 分`;
         finalScore.classList.remove('hidden');
-        startBtn.innerText = "再玩一次";
-        startBtn.disabled = false;
+        startBtn.innerText = "再玩一次"; startBtn.disabled = false;
         document.getElementById('difficultyUI').classList.remove('hidden');
         powerUpMsg.style.opacity = "0"; 
         
